@@ -11,3 +11,6 @@ build/Release
 # Logs
 logs
 *.log
+
+# Does not work with yarn
+package-lock.json
