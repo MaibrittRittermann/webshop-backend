@@ -1,10 +1,11 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import Product, {validateProduct } from '../models/product';
 import validateObjectId from '../middleware/validateObjectId';
+import auth from '../middleware/auth';
 
 const router = Router();
 
-router.get('/', async (req, res) => {
+router.get('/', async (req : Request, res : any) => {
     res.json(await Product.find());
 });
 
@@ -22,7 +23,7 @@ router.get('/sku/:id', async (req, res: any) => {
     res.json(product);
 });
 
-router.post('/', async (req, res: any) => {
+router.post('/', auth, async (req, res: any) => {
     const {error} = validateProduct(req.body);
     if(error) return res.status(400).send(error.message);
 
@@ -36,7 +37,7 @@ router.post('/', async (req, res: any) => {
     }
 });
 
-router.put('/:id', async (req, res: any) => {
+router.put('/:id', [auth, validateObjectId], async (req: Request, res: any) => {
     const {error} = validateProduct(req.body);
     if(error) return res.status(400).send(error.message);
 
@@ -52,7 +53,7 @@ router.put('/:id', async (req, res: any) => {
     }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', [auth, validateObjectId], async (req: Request, res: any) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
         if (product) {

@@ -10,7 +10,7 @@ export interface IUser extends Document {
     email: string;
 }
 
-const UserSchema: Schema = new Schema({
+export const UserSchema: Schema = new Schema({
     name: {type: String, required: true},
     address: {type: String, required: true},
     zip:{type: Number, required: true},
@@ -27,7 +27,7 @@ export const validateUser = (prod : IUser) => {
         zip: Joi.number().required(),
         city: Joi.string().required(),
         phone: Joi.string().required(),
-        email: Joi.string(),
+        email: Joi.string()
     })
     return userSchema.validate(prod);
 }

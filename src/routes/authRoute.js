@@ -36,63 +36,54 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const product_1 = __importStar(require("../models/product"));
-const validateObjectId_1 = __importDefault(require("../middleware/validateObjectId"));
-const auth_1 = __importDefault(require("../middleware/auth"));
+const auth_1 = __importStar(require("../models/auth"));
+const validateObjectId_1 = __importDefault(require("./../middleware/validateObjectId"));
+const auth_2 = __importDefault(require("../middleware/auth"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const config_1 = __importDefault(require("../config"));
 const router = (0, express_1.Router)();
-router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    res.json(yield product_1.default.find());
+router.get('/', auth_2.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    res.json(yield auth_1.default.find());
 }));
-router.get('/:id', validateObjectId_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const product = yield product_1.default.findById(req.params.id);
-    if (!product)
-        return res.status(404).send("Produktet blev ikke fundet");
-    res.json(product);
+router.get('/:id', [auth_2.default, validateObjectId_1.default], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    res.json(yield auth_1.default.findById(req.params.id));
 }));
-router.get('/sku/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const product = yield product_1.default.findOne({ sku: req.params.id });
-    if (!product)
-        return res.status(404).send("Produktet blev ikke fundet");
-    res.json(product);
-}));
-router.post('/', auth_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { error } = (0, product_1.validateProduct)(req.body);
+router.post('/register', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { error } = (0, auth_1.validateAuth)(req.body);
     if (error)
         return res.status(400).send(error.message);
-    const newProduct = new product_1.default(req.body);
+    const exist = yield auth_1.default.findOne({ $or: [{ email: req.body.email }, { username: req.body.username }] });
+    if (exist)
+        return res.status(400).send("En bruger med de angivne oplysninger er allerede oprettet.");
+    const newUser = new auth_1.default(req.body);
     try {
-        yield newProduct.save();
-        res.status(201).json(newProduct);
+        bcryptjs_1.default.genSalt(10, function (err, salt) {
+            bcryptjs_1.default.hash(newUser.password, salt, function (err, hash) {
+                newUser.password = hash;
+                const token = jsonwebtoken_1.default.sign({ _id: newUser._id, access: newUser.access }, config_1.default.JWTPKWEBSHOP);
+                newUser.save().then(() => {
+                    res
+                        .status(201)
+                        .header("access-control-expose-headers", "x-auth-token")
+                        .header("x-auth-token", token)
+                        .send(`Bruger ${newUser.username} med email ${newUser.email} er oprettet`);
+                });
+            });
+        });
     }
     catch (err) {
         res.status(500).send(err.message);
     }
 }));
-router.put('/:id', [auth_1.default, validateObjectId_1.default], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { error } = (0, product_1.validateProduct)(req.body);
-    if (error)
-        return res.status(400).send(error.message);
+router.delete('/:id', [auth_2.default, validateObjectId_1.default], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const product = yield product_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (product) {
-            res.json(product);
+        const user = yield auth_1.default.findByIdAndDelete(req.params.id);
+        if (user) {
+            res.json(user);
         }
         else {
-            res.status(404).send('Product not found');
-        }
-    }
-    catch (err) {
-        res.status(500).send(err.message);
-    }
-}));
-router.delete('/:id', [auth_1.default, validateObjectId_1.default], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const product = yield product_1.default.findByIdAndDelete(req.params.id);
-        if (product) {
-            res.status(204).json(product);
-        }
-        else {
-            res.status(404).send('Product not found');
+            res.status(404).send('Brugeren fandtes ikke.');
         }
     }
     catch (err) {

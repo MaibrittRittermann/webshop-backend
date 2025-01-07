@@ -1,13 +1,14 @@
 import mongoose from 'mongoose';
+import config from '../config';
+import winston from "winston";
 
 const connectDB = async () => {
-    console.log("Connect to DB");
     mongoose
-        .connect('mongodb://127.0.0.1:27017/webshopts')
+        .connect(config.MONGO_URI)
         .then(() => {
-            console.log('Connected to MongoDB');
+            winston.info('Connected to MongoDB');
         }).catch(err => {
-            console.error('Failed to connect to MongoDB', err);
+            winston.error('Failed to connect to MongoDB', err);
    });
 }
 

@@ -13,14 +13,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
+const config_1 = __importDefault(require("../config"));
+const winston_1 = __importDefault(require("winston"));
 const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("Connect to DB");
     mongoose_1.default
-        .connect('mongodb://127.0.0.1:27017/webshopts')
+        .connect(config_1.default.MONGO_URI)
         .then(() => {
-        console.log('Connected to MongoDB');
+        winston_1.default.info('Connected to MongoDB');
     }).catch(err => {
-        console.error('Failed to connect to MongoDB', err);
+        winston_1.default.error('Failed to connect to MongoDB', err);
     });
 });
 exports.default = connectDB;

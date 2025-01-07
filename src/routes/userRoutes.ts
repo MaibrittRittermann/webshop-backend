@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import User,{ validateUser } from "../models/user";
 import validateObjectId from "./../middleware/validateObjectId";
+import auth from "./../middleware/auth";
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.post('/', async (req: Request, res: any) => {
     }
 });
 
-router.put('/:id', [validateObjectId], async (req : any, res : any) => {
+router.put('/:id', [auth, validateObjectId], async (req : any, res : any) => {
     const { error } = validateUser(req.body);
     if (error) return res.status(400).send(error.message);
 
@@ -45,8 +46,17 @@ router.put('/:id', [validateObjectId], async (req : any, res : any) => {
     }
 });
 
-router.delete('/:id', [validateObjectId], async(req: any, res : any) => {
-
+router.delete('/:id', [auth, validateObjectId], async(req: any, res : any) => {
+    try {
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (user) {
+            res.json(user);
+        } else {
+            res.status(404).send('Brugeren fandtes ikke.');
+        }
+    } catch (err: any) {
+        res.status(500).send(err.message);
+    }
 })
 
 

@@ -26,10 +26,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateUser = void 0;
+exports.validateUser = exports.UserSchema = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const joi_1 = __importDefault(require("joi"));
-const UserSchema = new mongoose_1.Schema({
+exports.UserSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     address: { type: String, required: true },
     zip: { type: Number, required: true },
@@ -44,9 +44,9 @@ const validateUser = (prod) => {
         zip: joi_1.default.number().required(),
         city: joi_1.default.string().required(),
         phone: joi_1.default.string().required(),
-        email: joi_1.default.string(),
+        email: joi_1.default.string()
     });
     return userSchema.validate(prod);
 };
 exports.validateUser = validateUser;
-exports.default = mongoose_1.default.model('UserTS', UserSchema);
+exports.default = mongoose_1.default.model('UserTS', exports.UserSchema);

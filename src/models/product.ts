@@ -11,14 +11,23 @@ export interface IProduct extends Document {
     price: number;
 }
 
-const ProductSchema: Schema = new Schema({
+export const ProductSchema: Schema = new Schema({
     sku: {type: String, required: true},
     name: {type: String, required: true},
     description:{type: String, required: true},
     seo: {type: String, required: true},
-    category: {type: String, required: true},
+    category: {
+        type: String, 
+        required: true,
+        enum: ["grøntsag", "frugt", "nødder", "svampe", "mejeri og æg"]},
     image: {type: String, required: true},
     price: {type: Number, required: true},
+    reviews: [{
+        rating: { type: Number},
+        name: {type: String},
+        email: {type: String},
+        review: {type: String}
+    }]
 })
 
 export const validateProduct = (prod : IProduct) => {

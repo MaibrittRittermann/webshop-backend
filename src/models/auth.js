@@ -26,39 +26,46 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateProduct = exports.ProductSchema = void 0;
+exports.validateAuth = validateAuth;
 const mongoose_1 = __importStar(require("mongoose"));
 const joi_1 = __importDefault(require("joi"));
-exports.ProductSchema = new mongoose_1.Schema({
-    sku: { type: String, required: true },
-    name: { type: String, required: true },
-    description: { type: String, required: true },
-    seo: { type: String, required: true },
-    category: {
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const config_1 = __importDefault(require("../config"));
+const authSchema = new mongoose_1.Schema({
+    username: {
         type: String,
         required: true,
-        enum: ["grøntsag", "frugt", "nødder", "svampe", "mejeri og æg"]
+        unique: true
     },
-    image: { type: String, required: true },
-    price: { type: Number, required: true },
-    reviews: [{
-            rating: { type: Number },
-            name: { type: String },
-            email: { type: String },
-            review: { type: String }
-        }]
+    email: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    password: {
+        type: String,
+        required: true
+    },
+    access: {
+        type: String,
+        enum: ["admin", "user"]
+    }
 });
-const validateProduct = (prod) => {
-    const productSchema = joi_1.default.object({
-        sku: joi_1.default.string().min(2).max(50).required(),
-        name: joi_1.default.string().min(2).max(72).required(),
-        description: joi_1.default.string(),
-        seo: joi_1.default.string(),
-        category: joi_1.default.string().required(),
-        image: joi_1.default.string(),
-        price: joi_1.default.number().required()
+authSchema.method('generateAuthToken', function () {
+    const token = jsonwebtoken_1.default.sign({
+        _id: this._id,
+        username: this.username,
+        access: this.access
+    }, config_1.default.JWTPKWEBSHOP);
+    return token;
+});
+exports.default = mongoose_1.default.model('Auth', authSchema);
+function validateAuth(admin) {
+    const schema = joi_1.default.object({
+        username: joi_1.default.string().min(3).max(72).required(),
+        email: joi_1.default.string().email().max(255).required(),
+        password: joi_1.default.string().min(8).max(255).required(),
+        access: joi_1.default.string()
     });
-    return productSchema.validate(prod);
-};
-exports.validateProduct = validateProduct;
-exports.default = mongoose_1.default.model('ProductTS', exports.ProductSchema);
+    return schema.validate(admin);
+}

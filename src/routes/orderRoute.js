@@ -35,65 +35,72 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const product_1 = __importStar(require("../models/product"));
+const express_1 = __importDefault(require("express"));
+const order_1 = __importStar(require("../models/order"));
 const validateObjectId_1 = __importDefault(require("../middleware/validateObjectId"));
-const auth_1 = __importDefault(require("../middleware/auth"));
-const router = (0, express_1.Router)();
+const mailer_1 = require("../services/mailer");
+const config_1 = __importDefault(require("../config"));
+const router = express_1.default.Router();
+// Opret en ny ordre
+router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { error } = (0, order_1.validateOrder)(req.body);
+    if (error)
+        return res.status(400).send(error.details[0].message);
+    const order = new order_1.default(req.body);
+    try {
+        yield order.save();
+        const mail = (0, mailer_1.generateOrderHTML)(req.body);
+        (0, mailer_1.sendMail)(config_1.default.MAIL_USERNAME, req.body.email, `Tak for din ordre ${req.body.name}`, mail);
+        res.status(201).send(order);
+    }
+    catch (err) {
+        res.status(500).send(err.message);
+    }
+}));
+// Hent alle ordrer
 router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    res.json(yield product_1.default.find());
-}));
-router.get('/:id', validateObjectId_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const product = yield product_1.default.findById(req.params.id);
-    if (!product)
-        return res.status(404).send("Produktet blev ikke fundet");
-    res.json(product);
-}));
-router.get('/sku/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const product = yield product_1.default.findOne({ sku: req.params.id });
-    if (!product)
-        return res.status(404).send("Produktet blev ikke fundet");
-    res.json(product);
-}));
-router.post('/', auth_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { error } = (0, product_1.validateProduct)(req.body);
-    if (error)
-        return res.status(400).send(error.message);
-    const newProduct = new product_1.default(req.body);
     try {
-        yield newProduct.save();
-        res.status(201).json(newProduct);
+        const orders = yield order_1.default.find();
+        res.send(orders);
     }
     catch (err) {
         res.status(500).send(err.message);
     }
 }));
-router.put('/:id', [auth_1.default, validateObjectId_1.default], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { error } = (0, product_1.validateProduct)(req.body);
-    if (error)
-        return res.status(400).send(error.message);
+// Hent en specifik ordre
+router.get('/:id', [validateObjectId_1.default], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const product = yield product_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (product) {
-            res.json(product);
-        }
-        else {
-            res.status(404).send('Product not found');
-        }
+        const order = yield order_1.default.findById(req.params.id);
+        if (!order)
+            return res.status(404).send('Order not found.');
+        res.send(order);
     }
     catch (err) {
         res.status(500).send(err.message);
     }
 }));
-router.delete('/:id', [auth_1.default, validateObjectId_1.default], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+// Opdater en ordre
+router.put('/:id', [validateObjectId_1.default], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { error } = (0, order_1.validateOrder)(req.body);
+    if (error)
+        return res.status(400).send(error.details[0].message);
     try {
-        const product = yield product_1.default.findByIdAndDelete(req.params.id);
-        if (product) {
-            res.status(204).json(product);
-        }
-        else {
-            res.status(404).send('Product not found');
-        }
+        const order = yield order_1.default.findByIdAndUpdate(req.params.id, Object.assign(Object.assign({}, req.body), { updatedAt: new Date() }), { new: true, runValidators: true });
+        if (!order)
+            return res.status(404).send('Order not found.');
+        res.send(order);
+    }
+    catch (err) {
+        res.status(500).send(err.message);
+    }
+}));
+// Slet en ordre
+router.delete('/:id', [validateObjectId_1.default], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const order = yield order_1.default.findByIdAndDelete(req.params.id);
+        if (!order)
+            return res.status(404).send('Order not found.');
+        res.send(order);
     }
     catch (err) {
         res.status(500).send(err.message);
